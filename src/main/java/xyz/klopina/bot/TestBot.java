@@ -5,8 +5,13 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
+
+import java.util.*;
 
 public class TestBot extends TelegramLongPollingBot {
     @Override
@@ -23,12 +28,43 @@ public class TestBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage()) {
-            Message message = update.getMessage();
-            if (message.hasText()) {
-                execute(SendMessage.builder()
-                        .chatId(message.getChatId().toString())
-                        .text("You sent: \n\n" + message.getText())
-                        .build());
+            handleMessage(update.getMessage());
+        }
+    }
+
+    @SneakyThrows
+    private void handleMessage(Message message) {
+        if (message.hasText() && message.hasEntities()) {
+            Optional<MessageEntity> commandEntities =
+                    message.getEntities().stream().filter(e -> "bot_command".equals(e.getType())).findFirst();
+            if (commandEntities.isPresent()) {
+                String command = message.getText().substring(commandEntities.get().getOffset(),
+                        commandEntities.get().getLength());
+                switch (command) {
+                    case "/set_currency":
+                        List<List<InlineKeyboardButton>> buttons = new ArrayList<>();
+                        for (Currency currency : Currency.values()) {
+                            buttons.add(
+                                    Arrays.asList(
+                                            InlineKeyboardButton.builder()
+                                                    .text(currency.name())
+                                                    .callbackData("ORIGINAL :" + currency)
+                                                    .build(),
+                                            InlineKeyboardButton.builder()
+                                                    .text(currency.name())
+                                                    .callbackData("TARGET :" + currency)
+                                                    .build()));
+
+
+
+                        }
+                        execute(SendMessage.builder()
+                                .text("Please choose Original and Target currencies")
+                                .chatId(message.getChatId().toString())
+                                .replyMarkup(InlineKeyboardMarkup.builder().keyboard(buttons).build())
+                                .build());
+                        return;
+                }
             }
         }
     }
