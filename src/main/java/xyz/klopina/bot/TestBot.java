@@ -10,10 +10,15 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
+import service.CurrencyModeService;
 
 import java.util.*;
 
 public class TestBot extends TelegramLongPollingBot {
+    private final CurrencyModeService currencyModeService = CurrencyModeService.getInstance();
+private String getCurrencyButton(Currency saved, Currency current){
+    return saved == current ? current + "✔" : current.name();
+}
     @Override
     public String getBotUsername() {
         return "@klopinabot";
@@ -43,15 +48,18 @@ public class TestBot extends TelegramLongPollingBot {
                 switch (command) {
                     case "/set_currency":
                         List<List<InlineKeyboardButton>> buttons = new ArrayList<>();
+                        Currency originalCurrency = currencyModeService.getOriginalCurrency(message.getChatId());
+                        Currency targetCurrency = currencyModeService.getOriginalCurrency(message.getChatId());
+
                         for (Currency currency : Currency.values()) {
                             buttons.add(
                                     Arrays.asList(
                                             InlineKeyboardButton.builder()
-                                                    .text(currency.name())
+                                                    .text(getCurrencyButton(originalCurrency,currency))
                                                     .callbackData("ORIGINAL :" + currency)
                                                     .build(),
                                             InlineKeyboardButton.builder()
-                                                    .text(currency.name())
+                                                    .text(getCurrencyButton(targetCurrency,currency))
                                                     .callbackData("TARGET :" + currency)
                                                     .build()));
 
